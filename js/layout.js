@@ -12,8 +12,9 @@ export const HINTS = [
 /**
  * Every row on the page is one line of paper tall. Returns items of type
  * "blank", "hint", "heading" or "row" (a line of a sum, with its calculation's column layout).
+ * `titleEditingID` is a calculation whose title is being typed, which gets a title row even while it has none.
  */
-export function pageItems(evaluation, prefs, format, { width, minimumRows, tailRows = 3 }) {
+export function pageItems(evaluation, prefs, format, { width, minimumRows, tailRows = 3, titleEditingID = null }) {
   const blocks = evaluation.calculations.map((calculation) => ({
     id: calculation.id,
     calculationID: calculation.id,
@@ -37,7 +38,7 @@ export function pageItems(evaluation, prefs, format, { width, minimumRows, tailR
   }
   blocks.forEach((block, index) => {
     if (index > 0) items.push({ type: 'blank', id: `blank-gap-${block.id}` });
-    if (block.calculationID && block.title) {
+    if (block.calculationID && (block.title || block.calculationID === titleEditingID)) {
       items.push({ type: 'heading', id: `heading-${block.calculationID}`, calculationID: block.calculationID, title: block.title });
     }
     const layout = blockLayout(block.rows, prefs, format, width);

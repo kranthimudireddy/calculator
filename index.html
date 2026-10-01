@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Calculator">
+  <meta name="apple-mobile-web-app-title" content="DoodleTape">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#FFFDF8" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)">
-  <title>Calculator</title>
+  <title>DoodleTape</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -19,18 +19,25 @@
 <body>
   <div id="app">
     <header class="toolbar">
-      <div class="toolbar-side"></div>
-      <h1 class="page-title" id="page-title"></h1>
-      <div class="toolbar-side"></div>
+      <div class="toolbar-side">
+        <button type="button" class="bar-button" id="notebook-button" aria-label="Notebook">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h11a1.5 1.5 0 0 1 1.5 1.5v14a1.5 1.5 0 0 1-1.5 1.5H6z"/><path d="M6 3.5v17M9.5 8h6M9.5 11.5h6M9.5 15h4"/></svg>
+        </button>
+      </div>
+      <div class="title-slot" id="title-slot"></div>
+      <div class="toolbar-side end">
+        <button type="button" class="bar-button" id="new-page-button" aria-label="New page">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4.5H6A1.5 1.5 0 0 0 4.5 6v12A1.5 1.5 0 0 0 6 19.5h12a1.5 1.5 0 0 0 1.5-1.5v-5"/><path d="M17.5 3.8l2.7 2.7-7.7 7.7-3.4.7.7-3.4z"/></svg>
+        </button>
+        <button type="button" class="bar-button" id="more-button" aria-label="More"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
+      </div>
     </header>
 
-    <main class="page" id="page">
-      <div class="rows" id="rows"></div>
-    </main>
+    <main class="pager" id="pager"></main>
 
     <footer class="panel" id="panel">
       <div class="accessory">
-        <div class="page-dots" id="page-dots"></div>
+        <button type="button" class="page-dots" id="page-dots"></button>
         <div class="spacer"></div>
         <button type="button" class="undo" id="undo" aria-label="Undo">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>

@@ -39,14 +39,21 @@ const SIZES = {
   large: { fontSize: 36, rowHeight: 48 },
 };
 
-export const DEFAULT_PREFS = { theme: 'sky', paper: 'grid', font: 'noteworthy', size: 'medium', decimals: 2 };
+export const DEFAULT_PREFS = { theme: 'sky', paper: 'grid', font: 'noteworthy', size: 'medium', decimals: 2, haptics: true };
 
 const STORAGE_KEY = 'calculator.prefs';
 
 export function loadPrefs() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
-    return { ...DEFAULT_PREFS, ...saved };
+    const prefs = { ...DEFAULT_PREFS, ...saved };
+    if (!THEMES[prefs.theme]) prefs.theme = DEFAULT_PREFS.theme;
+    if (!FONTS[prefs.font]) prefs.font = DEFAULT_PREFS.font;
+    if (!['plain', 'lined', 'grid'].includes(prefs.paper)) prefs.paper = DEFAULT_PREFS.paper;
+    if (!SIZES[prefs.size]) prefs.size = DEFAULT_PREFS.size;
+    if (![0, 1, 2, 3, 4, 6, 8, 10].includes(prefs.decimals)) prefs.decimals = DEFAULT_PREFS.decimals;
+    if (typeof prefs.haptics !== 'boolean') prefs.haptics = true;
+    return prefs;
   } catch {
     return { ...DEFAULT_PREFS };
   }

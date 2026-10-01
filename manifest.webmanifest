@@ -1,6 +1,6 @@
 {
-  "name": "Calculator",
-  "short_name": "Calculator",
+  "name": "DoodleTape",
+  "short_name": "DoodleTape",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

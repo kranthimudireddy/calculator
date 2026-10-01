@@ -114,7 +114,7 @@ export function apply(page, key) {
       backspace(page);
       break;
     case 'clear':
-      page.draft = null;
+      clearLastLine(page);
       break;
   }
   page.modifiedAt = Date.now();
@@ -134,6 +134,21 @@ export function commitDraft(page) {
   page.draft = null;
   page.modifiedAt = Date.now();
   return true;
+}
+
+/** Remove a whole number line, skipping its trailing subtotal marks. */
+function clearLastLine(page) {
+  if (page.draft && (hasDigits(page.draft) || page.draft.note)) {
+    page.draft = null;
+    return;
+  }
+  page.draft = null;
+  while (page.calculations.length) {
+    const last = page.calculations.at(-1);
+    const removed = last.entries.pop();
+    if (!last.entries.length) page.calculations.pop();
+    if (removed?.kind === 'line') return;
+  }
 }
 
 function backspace(page) {

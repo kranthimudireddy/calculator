@@ -18,7 +18,7 @@ function keys(decimalSeparator) {
     digit(4), digit(5), digit(6), ['op:*', '×', 'op', 'Times'], ['op:/', '÷', 'op', 'Divide'],
     digit(1), digit(2), digit(3), ['op:+', '+', 'op', 'Plus'], ['op:-', '−', 'op', 'Minus'],
     digit(0), ['point', decimalSeparator, 'digit', 'Decimal point'],
-    ['backspace', DELETE, 'digit backspace', 'Delete, hold to clear the line'],
+    ['backspace', DELETE, 'digit backspace', 'Delete, hold to remove whole lines'],
     ['equals', '=', 'op wide', 'Equals'],
   ];
 }
@@ -42,17 +42,24 @@ function wire(button, onKey) {
   const release = () => {
     button.classList.remove('pressed');
     clearTimeout(holdTimer);
+    holdTimer = null;
   };
 
   button.addEventListener('pointerdown', (event) => {
     event.preventDefault();
+    release();
     button.classList.add('pressed');
+    button.setPointerCapture?.(event.pointerId);
     if (action === 'note') return;
     if (action === 'backspace') {
       held = false;
       holdTimer = setTimeout(() => {
         held = true;
-        onKey('clear');
+        const repeat = () => {
+          onKey('clear');
+          holdTimer = setTimeout(repeat, 350);
+        };
+        repeat();
       }, 450);
       return;
     }
@@ -67,5 +74,13 @@ function wire(button, onKey) {
     if (inside) onKey('backspace');
   });
   button.addEventListener('pointercancel', release);
-  if (action === 'note') button.addEventListener('click', () => onKey('note'));
+  button.addEventListener('lostpointercapture', release);
+  window.addEventListener('blur', release);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) release();
+  });
+  button.addEventListener('click', (event) => {
+    // Keyboard and assistive-technology clicks have no pointer press.
+    if (action === 'note' || event.detail === 0) onKey(action);
+  });
 }

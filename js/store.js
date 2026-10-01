@@ -7,13 +7,17 @@ const STORAGE_KEY = 'calculator.notebook';
 
 export class NotebookStore {
   constructor() {
-    const notebook = loadNotebook() ?? welcomeNotebook();
+    const notebook = loadNotebook() ?? emptyNotebook();
+    // Remove only the unchanged bundled demo; keep edited Welcome pages.
+    notebook.pages = notebook.pages.filter(page => !isOriginalSample(page));
     this.pages = notebook.pages.length > 0 ? notebook.pages : [tape.newPage()];
     this.selectedPageID = this.pages.find((page) => page.id === notebook.selectedPageID)?.id ?? this.pages.at(-1).id;
     /** The line whose note is being typed on the page: { pageID, target: { kind: 'draft' } or { kind: 'entry', id } }. */
     this.noteEditing = null;
     /** A line open in the line editor: { pageID, entryID }. */
     this.editing = null;
+    /** A title being typed in place: { pageID, calculationID (null for the page's own title), text }. */
+    this.titleEditing = null;
     this.undoStack = [];
     this.listeners = new Set();
     this.saveTimer = null;
@@ -49,7 +53,7 @@ export class NotebookStore {
 
   select(pageID) {
     if (pageID === this.selectedPageID || !this.page(pageID)) return;
-    this.endNote();
+    this.finishTyping();
     this.selectedPageID = pageID;
     this.scheduleSave();
     this.notify();
@@ -57,7 +61,7 @@ export class NotebookStore {
 
   /** Opens a blank page at the end (reusing the last page if it's already blank). */
   newPage() {
-    this.endNote();
+    this.finishTyping();
     const last = this.pages.at(-1);
     if (last && isBlank(last) && !last.title) {
       this.select(last.id);
@@ -86,7 +90,7 @@ export class NotebookStore {
   deletePage(id) {
     const index = this.pages.findIndex((page) => page.id === id);
     if (index < 0) return;
-    this.endNote();
+    this.finishTyping();
     this.pages.splice(index, 1);
     this.undoStack = this.undoStack.filter((snapshot) => snapshot.id !== id);
     if (this.pages.length === 0) this.pages = [tape.newPage()];
@@ -102,7 +106,7 @@ export class NotebookStore {
   }
 
   clearPage(id) {
-    this.endNote();
+    this.finishTyping();
     this.mutate(id, true, (page) => {
       page.calculations = [];
       page.draft = null;
@@ -133,7 +137,7 @@ export class NotebookStore {
   beginNote(target) {
     const editing = { pageID: this.selectedPageID, target };
     if (sameNoteEditing(this.noteEditing, editing)) return;
-    this.endNote();
+    this.finishTyping();
     this.checkpoint(this.selectedPageID);
     this.noteEditing = editing;
     this.notify();
@@ -173,12 +177,57 @@ export class NotebookStore {
     this.scheduleSave();
   }
 
+  // MARK: Titles, typed in place
+
+  /** Starts typing a calculation's title on the page, or the page's own title when `calculationID` is null. */
+  beginTitle(pageID, calculationID = null) {
+    const page = this.page(pageID);
+    if (!page) return;
+    if (this.titleEditing?.pageID === pageID && this.titleEditing.calculationID === calculationID) return;
+    this.finishTyping();
+    const text = calculationID ? page.calculations.find((c) => c.id === calculationID)?.title ?? '' : page.title;
+    this.titleEditing = { pageID, calculationID, text };
+    this.notify();
+  }
+
+  /** Typing a title: kept until the title is finished, so nothing else redraws. */
+  setTitleText(text) {
+    if (this.titleEditing) this.titleEditing.text = text;
+  }
+
+  endTitle() {
+    const editing = this.titleEditing;
+    if (!editing) return;
+    this.titleEditing = null;
+    const page = this.page(editing.pageID);
+    const title = editing.text.trim();
+    const current = editing.calculationID
+      ? page?.calculations.find((c) => c.id === editing.calculationID)?.title
+      : page?.title;
+    if (current === undefined || title === current) this.notify();
+    else if (editing.calculationID) this.setCalculationTitle(title, editing.calculationID, editing.pageID, true);
+    else this.renamePage(editing.pageID, title);
+  }
+
+  /** Puts the pen down on whatever is being typed on the page. */
+  finishTyping() {
+    this.endNote();
+    this.endTitle();
+  }
+
   // MARK: Editing lines on the tape
 
   beginEditing(entryID) {
-    this.endNote();
+    this.finishTyping();
     this.checkpoint(this.selectedPageID);
     this.editing = { pageID: this.selectedPageID, entryID };
+    this.notify();
+  }
+
+  /** Moves the open line editor to another line, e.g. one just inserted. */
+  editInstead(entryID) {
+    if (!this.editing) return;
+    this.editing = { pageID: this.editing.pageID, entryID };
     this.notify();
   }
 
@@ -223,6 +272,7 @@ export class NotebookStore {
 
   undo() {
     this.noteEditing = null;
+    this.titleEditing = null;
     const snapshot = this.undoStack.pop();
     if (snapshot) {
       const index = this.pages.findIndex((page) => page.id === snapshot.id);
@@ -293,23 +343,27 @@ function loadNotebook() {
   }
 }
 
-/** The first-launch notebook: one page that shows what the app does. */
-function welcomeNotebook() {
-  const welcome = tape.newPage('Welcome');
-  welcome.calculations = [
-    tape.newCalculation([
-      tape.newLine(null, '12.40', { note: 'milk & eggs' }),
-      tape.newLine('+', '8.99', { note: 'bread' }),
-      tape.newLine('+', '23.50', { note: 'coffee beans' }),
-      tape.newTotal('this week'),
-    ], 'Groceries'),
-    tape.newCalculation([
-      tape.newLine(null, '86.50', { note: 'the bill' }),
-      tape.newLine('+', '15', { mode: 'percent', note: 'tip' }),
-      tape.newTotal(),
-      tape.newLine('/', '4', { note: 'people' }),
-      tape.newTotal('each'),
-    ], 'Dinner for four'),
-  ];
-  return { version: 1, pages: [welcome], selectedPageID: welcome.id };
+/** New installs open a clean sheet. */
+function emptyNotebook() {
+  const page = tape.newPage();
+  return { version: 1, pages: [page], selectedPageID: page.id };
+}
+
+function isOriginalSample(page) {
+  if (page.title !== 'Welcome' || page.draft !== null) return false;
+  const content = page.calculations.map(c => [c.title, c.entries.map(e =>
+    e.kind === 'total' ? ['total', e.note] : ['line', e.op, e.text, e.mode, e.note])]);
+  return JSON.stringify(content) === JSON.stringify([
+    ['Groceries', [
+      ['line', null, '12.40', 'number', 'milk & eggs'],
+      ['line', '+', '8.99', 'number', 'bread'],
+      ['line', '+', '23.50', 'number', 'coffee beans'],
+      ['total', 'this week'],
+    ]],
+    ['Dinner for four', [
+      ['line', null, '86.50', 'number', 'the bill'],
+      ['line', '+', '15', 'percent', 'tip'],
+      ['total', ''], ['line', '/', '4', 'number', 'people'], ['total', 'each'],
+    ]],
+  ]);
 }

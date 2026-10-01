@@ -332,3 +332,26 @@ test('exports plain text', () => {
   ].join('\n');
   assert.equal(tape.plainText(p, options), expected);
 });
+
+test('hold clear removes successive whole lines and trailing totals', () => {
+  const p = page('123+456=789');
+  tape.apply(p, tape.Key.clear);
+  assert.equal(p.draft, null);
+  assert.deepEqual(texts(p), ['123', '456', '579']);
+  tape.apply(p, tape.Key.clear);
+  assert.deepEqual(texts(p), ['123']);
+  tape.apply(p, tape.Key.clear);
+  assert.deepEqual(p.calculations, []);
+  tape.apply(p, tape.Key.clear);
+  assert.deepEqual(p.calculations, []);
+});
+
+test('hold clear skips a pending operator and deletes across calculations', () => {
+  const p = page('12+34=56=');
+  tape.apply(p, tape.Key.clear);
+  assert.deepEqual(texts(p), ['12', '34', '46']);
+  type('+', p);
+  tape.apply(p, tape.Key.clear);
+  assert.equal(p.draft, null);
+  assert.deepEqual(texts(p), ['12']);
+});

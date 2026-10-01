@@ -1,7 +1,7 @@
 // Offline support. Every file the app needs is kept in a cache: online, files come fresh from the
 // network (and refresh the cache); offline, they come from the cache.
 
-const CACHE = 'calculator-v1';
+const CACHE = 'calculator-v5';
 const FILES = [
   './',
   './index.html',
@@ -12,11 +12,16 @@ const FILES = [
   './js/handwriting.js',
   './js/keypad.js',
   './js/layout.js',
+  './js/line-editor.js',
+  './js/notebook.js',
   './js/number-format.js',
   './js/page-view.js',
   './js/prefs.js',
+  './js/settings.js',
+  './js/share.js',
   './js/store.js',
   './js/tape.js',
+  './js/ui.js',
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -29,7 +34,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
+      .then((keys) => Promise.all(keys.filter((key) => key.startsWith('calculator-') && key !== CACHE).map((key) => caches.delete(key))))
       .then(() => self.clients.claim()),
   );
 });

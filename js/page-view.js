@@ -9,8 +9,8 @@ export const escapeHTML = (text) => String(text).replace(/[&<>"']/g, (character)
 const SPOKEN = { plus: 'plus', minus: 'minus', times: 'times', divide: 'divided by', equals: 'equals' };
 
 /**
- * `context` is { prefs, format, width, noteEditingID, highlightedID, noteValue }:
- * the row whose note is being written gets a borderless text field instead of its note.
+ * `context` is { prefs, format, width, noteEditingID, highlightedID, noteValue, titleEditingID, titleValue }:
+ * the row whose note or title is being written gets a borderless text field in its place.
  */
 export function rowsHTML(items, context) {
   const m = metrics(context.prefs.size);
@@ -24,8 +24,12 @@ function itemHTML(item, context, m, font) {
       return `<div class="row blank" data-type="blank"${item.id === 'blank-tail-0' ? ' data-tail' : ''}></div>`;
     case 'hint':
       return `<div class="row hint" data-type="hint" style="font-size:${m.noteFontSize * 1.25 * font.sizeAdjustment}px">${escapeHTML(item.text)}</div>`;
-    case 'heading':
-      return `<div class="row heading" data-type="heading" data-calculation="${item.calculationID}" style="font-size:${m.headingFontSize * font.sizeAdjustment}px">${escapeHTML(item.title)}</div>`;
+    case 'heading': {
+      const title = item.calculationID === context.titleEditingID
+        ? `<input class="title-input" type="text" enterkeyhint="done" autocomplete="off" spellcheck="false" aria-label="Calculation title" value="${escapeHTML(context.titleValue)}">`
+        : escapeHTML(item.title);
+      return `<div class="row heading" data-type="heading" data-calculation="${item.calculationID}" style="font-size:${m.headingFontSize * font.sizeAdjustment}px">${title}</div>`;
+    }
     default:
       return lineHTML(item, context, m, font);
   }
